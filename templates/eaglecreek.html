@@ -1,0 +1,90 @@
+{% extends 'website/base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="mb-4">Eagle Creek Next 7 Day E Coli Alert</h1>
+        <div class="form-group">
+            <label for="location-dropdown">Select Location:</label>
+            <select class="form-control" id="location-dropdown">
+                <option value="39.73567,-86.19647" selected>Raymond St</option>
+                <option value="39.75048,-86.20769"> Morris St</option>
+                <option value="39.772,-86.234417"> Grande Ave </option>
+                <option value="39.780472,-86.259722"> 10th St. </option>
+                <option value="39.88778,-86.306917">Lafayette Rd.</option>
+                <option value="39.925944,-86.278861">Ford Rd. </option>
+
+            </select>
+        </div>
+        <table class="table table-striped" id="weather-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Today's Avg Temp (°C)</th>
+                    <th>15-Day Avg Temp (°C)</th>
+                    <th>10-Day Avg Temp (°C)</th>
+                    <th>10-Day Rain Sum (mm)</th>
+                    <th>Precipitation (mm)</th>
+
+                    <th>E-Coli Alert </th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be populated here via AJAX -->
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            function fetchWeatherData(lat, lon) {
+                $.ajax({
+                    url: '/weather-data',
+                    data: {
+                        lat: lat,
+                        lon: lon,
+                        creek:"eaglecreek"
+                    },
+                    success: function(data) {
+                        let tableBody = $('#weather-table tbody');
+                        tableBody.empty();
+
+                        data.forEach(function(row) {
+                            tableBody.append(
+                                `<tr>
+                                    <td>${row.date}</td>
+                                    <td>${row.today_avg_temp.toFixed(2)}</td>
+                                    <td>${row['15_day_avg_temp'].toFixed(2)}</td>
+                                    <td>${row['10_day_avg_temp'].toFixed(2)}</td>
+                                    <td>${row['10_day_rain_sum'].toFixed(2)}</td>
+                                    <td>${row.today_precipitation.toFixed(2)}</td>
+                                    <td>${row.e_coli}</td>
+
+                                </tr>`
+                            );
+                        });
+                    },
+                    error: function() {
+                        alert('Failed to fetch weather data');
+                    }
+                });
+            }
+
+            // Default location coordinates
+            let defaultLat = '52.52';
+            let defaultLon = '13.41';
+
+            // Fetch data for the default location on page load
+            fetchWeatherData(defaultLat, defaultLon);
+
+            $('#location-dropdown').change(function() {
+                let selectedLocation = $(this).val();
+                let coords = selectedLocation.split(',');
+
+                fetchWeatherData(coords[0], coords[1]);
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'website/base.html' %}
+
+{% block content %}
+<div class="jumbotron text-center bg-white">
+    <h1 class="display-4">Welcome to E. coli Prediction System</h1>
+    <p class="lead">Real-time E. coli contamination forecasting for different creeks.</p>
+    <hr class="my-4">
+    <p>Select a creek from the dropdown menu in the navbar to view the latest E. coli predictions.</p>
+    <a class="btn btn-primary btn-lg" href="#" role="button">Learn more</a>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>Current Forecasting</h2>
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div id="loader" style="display: none;">Loading...</div>
+                    <div id="weather-data" style="display: none;">
+                        <p>ToDay Average Temperature   : <span id="temp">{{ temp }}</span>°C</p>
+                        <p>ToDay Average Precipitation : <span id="precp">{{ precp }}</span>%</p>
+                        <p>ToDay Average Rain          : <span id="rain">{{ rain }}</span> mm</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Stay informed with the most recent E. coli contamination levels for your selected creek. Our system provides accurate and timely predictions to ensure public safety and awareness.</p>
+                    <ul>
+                        <li>Eagle Creek: <span class="text-danger">High Risk</span></li>
+                        <li>Fall Creek: <span class="text-success">Low Risk</span></li>
+                        <li>Lick Creek: <span class="text-warning">Moderate Risk</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <h2>About Our System</h2>
+            <p>Our E. coli prediction system uses advanced machine learning algorithms to forecast contamination levels in various creeks. By analyzing historical data and environmental factors, we provide accurate and reliable predictions to help you stay safe and informed.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <h2>How to Use the System</h2>
+            <p>Follow these simple steps to use our E. coli prediction system:</p>
+            <ol>
+                <li>Navigate to the top navbar and hover over "Select Creek" to see the dropdown menu.</li>
+                <li>Choose your desired creek from the dropdown menu.</li>
+                <li>View the current E. coli contamination predictions and take necessary precautions.</li>
+                <li>Check back regularly for updated predictions and stay informed about water quality in your area.</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(fetchWeatherData);
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    });
+
+    function fetchWeatherData(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        document.getElementById("loader").style.display = "block";
+        document.getElementById("weather-data").style.display = "none";
+
+        fetch(`/weather-data?lat=${latitude}&lon=${longitude}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("temp").textContent = data.temp;
+                document.getElementById("precp").textContent = data.precp;
+                document.getElementById("rain").textContent = data.rain;
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("weather-data").style.display = "block";
+            })
+            .catch(error => {
+                console.error('Error fetching weather data:', error);
+                document.getElementById("loader").textContent = "Error loading data.";
+            });
+    }
+</script>
+{% endblock %}
