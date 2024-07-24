@@ -147,90 +147,94 @@
             });
         });
 
-        document.getElementById('start-date-picker').addEventListener('change', fetchHistoricalData);
-        document.getElementById('end-date-picker').addEventListener('change', fetchHistoricalData);
 
-        function fetchHistoricalData() {
-            const location = document.getElementById('location-dropdown').value;
-            const [lat, long] = location.split(',');
-            const creek = "{{ creekname }}";
-            const startDate = document.getElementById('start-date-picker').value;
-            const endDate = document.getElementById('end-date-picker').value;
 
-            if (!location || !startDate || !endDate) return;
 
-            document.getElementById('historical-loader').classList.remove('d-none');
+        // document.getElementById('start-date-picker').addEventListener('change', fetchHistoricalData);
+        // document.getElementById('end-date-picker').addEventListener('change', fetchHistoricalData);
 
-            const requestData = {
-                lat: lat,
-                long: long,
-                creek: creek,
-                start_date: startDate,
-                end_date: endDate
-            };
+        // function fetchHistoricalData() {
+        //     const location = document.getElementById('location-dropdown').value;
+        //     const [lat, long] = location.split(',');
+        //     const creek = "{{ creekname }}";
+        //     const startDate = document.getElementById('start-date-picker').value;
+        //     const endDate = document.getElementById('end-date-picker').value;
 
-            fetch('/historical/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')  // Ensure to send CSRF token for security
-                },
-                body: JSON.stringify(requestData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('historical-loader').classList.add('d-none');
-                // Update table with historical data
-                updateHistoricalTable(data);
-            })
-            .catch(error => {
-                console.error('Error fetching historical data:', error);
-                document.getElementById('historical-loader').classList.add('d-none');
-            });
-        }
+        //     if (!location || !startDate || !endDate) return;
 
-        function updateHistoricalTable(data) {
-            const tableBody = document.getElementById('historical-data-table').getElementsByTagName('tbody')[0];
-            tableBody.innerHTML = ''; // Clear existing data
+        //     document.getElementById('historical-loader').classList.remove('d-none');
 
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                    var alert = "No Alert";
-                    var alertColor = "green"; // Default to green
+        //     const requestData = {
+        //         lat: lat,
+        //         long: long,
+        //         creek: creek,
+        //         start_date: startDate,
+        //         end_date: endDate
+        //     };
 
-                    if (row.prediction == 1) {
-                        alert = "Yes Alert";
-                        alertColor = "red"; // Change to red if there is an alert
-                    }
+        //     fetch('/historical/', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'X-CSRFToken': getCookie('csrftoken')  // Ensure to send CSRF token for security
+        //         },
+        //         body: JSON.stringify(requestData)
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         document.getElementById('historical-loader').classList.add('d-none');
+        //         // Update table with historical data
+        //         updateHistoricalTable(data);
+        //     })
+        //     .catch(error => {
+        //         console.error('Error fetching historical data:', error);
+        //         document.getElementById('historical-loader').classList.add('d-none');
+        //     });
+        // }
 
-                    tr.innerHTML = `
-                        <td>${row.date}</td>
-                        <td>${row.Temp}</td>
-                        <td>${row.MinTemp}</td>
-                        <td>${row.MaxTemp}</td>
-                        <td>${row.Precipitation}</td>
-                        <td>${row.Season}</td>
-                        <td style="color: ${alertColor};">${alert}</td>
-                    `;
+        // function updateHistoricalTable(data) {
+        //     const tableBody = document.getElementById('historical-data-table').getElementsByTagName('tbody')[0];
+        //     tableBody.innerHTML = ''; // Clear existing data
 
-                    tableBody.appendChild(tr);
-            });
-        }
+        //     data.forEach(row => {
+        //         const tr = document.createElement('tr');
+        //             var alert = "No Alert";
+        //             var alertColor = "green"; // Default to green
 
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    // Does this cookie string begin with the name we want?
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
+        //             if (row.prediction == 1) {
+        //                 alert = "Yes Alert";
+        //                 alertColor = "red"; // Change to red if there is an alert
+        //             }
+
+        //             tr.innerHTML = `
+        //                 <td>${row.date}</td>
+        //                 <td>${row.Temp}</td>
+        //                 <td>${row.MinTemp}</td>
+        //                 <td>${row.MaxTemp}</td>
+        //                 <td>${row.Precipitation}</td>
+        //                 <td>${row.Season}</td>
+        //                 <td style="color: ${alertColor};">${alert}</td>
+        //             `;
+
+        //             tableBody.appendChild(tr);
+        //     });
+        // }
+
+        // function getCookie(name) {
+        //     let cookieValue = null;
+        //     if (document.cookie && document.cookie !== '') {
+        //         const cookies = document.cookie.split(';');
+        //         for (let i = 0; i < cookies.length; i++) {
+        //             const cookie = cookies[i].trim();
+        //             // Does this cookie string begin with the name we want?
+        //             if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        //                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        //                 break;
+        //             }
+        //         }
+        //     }
+        //     return cookieValue;
+        // }
     </script>
+
 {% endblock %}

@@ -29,7 +29,6 @@ class CreekPageView(TemplateView):
         context = super().get_context_data(**kwargs)
         creekname = self.kwargs.get('creekname')
         context['creekname'] = creekname
-        print(creekname)
         return context
 
 
@@ -37,7 +36,6 @@ class CreekPageView(TemplateView):
 
 
 def get_season(date):
-    print(date)
 
     if (date.month == 12 and date.day >= 20) or (date.month in [1, 2]) or (date.month == 3 and date.day < 20):
         return 'Winter'
@@ -54,7 +52,6 @@ def predictions(request):
     lat = request.GET.get('lat')
     lon = request.GET.get('lon')
     creek = request.GET.get('creek')
-    print(creek)
 
     if lat and lon:
         forecast_data = ForecastData(latitude=lat, longitude=lon, forecast_days=7)
@@ -100,84 +97,78 @@ def predictions(request):
 
         # Generate predictions based on the dataframe
         predictions = make_predictions(creek, df)
-        print(predictions)
 
         # Combine metrics and predictions
         for i, prediction in enumerate(predictions):
             metrics[i]['prediction'] =int(prediction)
 
-
-
-        print(metrics)
-
         return JsonResponse(metrics, safe=False)
 
 
 def historical_predictions(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            lat = data.get('lat')
-            lon = data.get('long')
-            creek = data.get('creek')
-            start_date = data.get('start_date')
-            end_date = data.get('end_date')
+    lat = request.GET.get('lat')
+    lon = request.GET.get('lon')
+    creek = request.GET.get('creek')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
 
+    metrics = []
 
-            metrics = []
-            print(creek)
-            print(lat)
+    if lat and lon and start_date and end_date:
+        historical_data = HistoricalData(latitude=lat, longitude=lon, start=start_date, end=end_date)
 
-            if lat and lon and start_date and end_date:
-                historical_data = HistoricalData(latitude=lat, longitude=lon, start=start_date, end=end_date)
+        # Fetch historical data
+        df = historical_data.daily_dataframe
 
-                # Fetch historical data
-                for index, row in historical_data.daily_dataframe.iterrows():
-                    date_str = row['date'].strftime('%Y-%m-%d')
-                    temp_max = row['temperature_2m_max']
-                    temp_min = row['temperature_2m_min']
-                    temp_avg = float((temp_max + temp_min) / 2)
-                    precipitation = float(row['precipitation_sum'])
-                    season = get_season(row['date'])
+        # Preprocessing data: convert to numeric and remove rows with missing data
+        df['temperature_2m_max'] = pd.to_numeric(df['temperature_2m_max'], errors='coerce')
+        df['temperature_2m_min'] = pd.to_numeric(df['temperature_2m_min'], errors='coerce')
+        df['precipitation_sum'] = pd.to_numeric(df['precipitation_sum'], errors='coerce')
 
-                    metrics.append({
-                        "date": date_str,
-                        "Precipitation": precipitation,
-                        "Temp": temp_avg,
-                        "MaxTemp": temp_max,
-                        "MinTemp": temp_min,
-                        "Season": season,
-                    })
+        # Drop rows with NaN values
+        df.dropna(subset=['temperature_2m_max', 'temperature_2m_min', 'precipitation_sum'], inplace=True)
 
-            dates = [entry['date'] for entry in metrics]
-            precipitation = [entry['Precipitation'] for entry in metrics]
-            temp = [entry['Temp'] for entry in metrics]
-            maxTemp = [entry['MaxTemp'] for entry in metrics]
-            minTemp = [entry['MinTemp'] for entry in metrics]
-            season = [entry['Season'] for entry in metrics]
+        for index, row in df.iterrows():
+            date_str = row['date'].strftime('%Y-%m-%d')
+            temp_max = row['temperature_2m_max']
+            temp_min = row['temperature_2m_min']
+            temp_avg = float((temp_max + temp_min) / 2)
+            precipitation = float(row['precipitation_sum'])
+            season = get_season(row['date'])
 
-            df = pd.DataFrame({
-                "date": dates,
+            metrics.append({
+                "date": date_str,
                 "Precipitation": precipitation,
-                "Temp": temp,
-                "MaxTemp": maxTemp,
-                "MinTemp": minTemp,
+                "Temp": temp_avg,
+                "MaxTemp": temp_max,
+                "MinTemp": temp_min,
                 "Season": season,
             })
 
-            predictions = make_predictions(creek, df)
+        dates = [entry['date'] for entry in metrics]
+        precipitation = [entry['Precipitation'] for entry in metrics]
+        temp = [entry['Temp'] for entry in metrics]
+        maxTemp = [entry['MaxTemp'] for entry in metrics]
+        minTemp = [entry['MinTemp'] for entry in metrics]
+        season = [entry['Season'] for entry in metrics]
 
-            for i, prediction in enumerate(predictions):
-                metrics[i]['prediction'] = int(prediction)
-            print(metrics,predictions)
+        df = pd.DataFrame({
+            "date": dates,
+            "Precipitation": precipitation,
+            "Temp": temp,
+            "MaxTemp": maxTemp,
+            "MinTemp": minTemp,
+            "Season": season,
+        })
 
+        predictions = make_predictions(creek, df)
 
+        for i, prediction in enumerate(predictions):
+            metrics[i]['prediction'] = int(prediction)
 
-            return JsonResponse(metrics, safe=False)
-        except Exception as e:
-            return JsonResponse({'error': 'Invalid coordinates'}, safe=False)
-
-
+        return JsonResponse(metrics, safe=False)
+    else:
+        return JsonResponse({'error': 'Invalid coordinates'}, safe=False)
 
 
 
@@ -211,7 +202,6 @@ def weather_data(request):
             'Temp':today_avg_temps
         })
         predictions = make_predictions('fallcreek',df)
-        print(predictions)
 
 
 
@@ -274,5 +264,4 @@ def compute_metrics(historical_data, forecast_data):
             "today_precipitation": today_precipitation,
             "e_coli":"None"
         })
-    print(metrics)
     return metrics

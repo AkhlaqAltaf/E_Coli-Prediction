@@ -148,7 +148,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.0"></script>
     <script>
         $(document).ready(function() {
-            fetchHistoricalData();
+            // fetchHistoricalData();
 
             let chart; // To hold the chart instance
 
@@ -286,15 +286,87 @@
             // Fetch data for the default location on page load
             let defaultLocation = $('#location-dropdown').val();
             let defaultCoords = defaultLocation.split(',');
+
             fetchWeatherData(defaultCoords[0], defaultCoords[1]);
+            fetchHistoricalData();
+
 
             $('#location-dropdown').change(function() {
+
                 let selectedLocation = $(this).val();
                 let coords = selectedLocation.split(',');
 
                 fetchWeatherData(coords[0], coords[1]);
+                fetchHistoricalData();
+
             });
+$('#start-date-picker').change(function() {
+
+fetchHistoricalData();
+
+});
+
+$('#end-date-picker').change(function() {
+
+fetchHistoricalData();
+
+});
+        function fetchHistoricalData() {
+            const location = $('#location-dropdown').val();
+            const creek = "{{ creekname }}";
+            const [lat, long] = location.split(',');
+            const startDate = $('#start-date-picker').val();
+            const endDate = $('#end-date-picker').val();
+
+            if (!location || !startDate || !endDate) return;
+
+            $('#historical-loader').removeClass('d-none');
+
+            $.ajax({
+                url: '/historical/',
+                // type: 'POST',
+             
+                data: {
+                    lat: lat,
+                    lon: long,
+                    creek: creek,
+                    start_date: startDate,
+                    end_date: endDate
+                },
+                success: function(data) {
+                    console.log(data);
+                    $('#historical-loader').addClass('d-none');
+                    updateHistoricalTable(data);
+                },
+                error: function() {
+                    $('#historical-loader').addClass('d-none');
+                    alert('Failed to fetch historical data');
+                }
+            });
+        }
+
+        function updateHistoricalTable(data) {
+            const tableBody = $('#historical-data-table tbody');
+            tableBody.empty();
+
+            data.forEach(row => {
+                const alert = row.prediction == 1 ? "Yes Alert" : "No Alert";
+                const alertColor = row.prediction == 1 ? "red" : "green";
+
+                const tr = `<tr>
+                    <td>${row.date}</td>
+                    <td>${row.Temp}</td>
+                    <td>${row.MinTemp}</td>
+                    <td>${row.MaxTemp}</td>
+                    <td>${row.Precipitation}</td>
+                    <td>${row.Season}</td>
+                    <td style="color: ${alertColor};">${alert}</td>
+                </tr>`;
+                tableBody.append(tr);
+            });
+        }
         });
+
     </script>
 </body>
 </html>
