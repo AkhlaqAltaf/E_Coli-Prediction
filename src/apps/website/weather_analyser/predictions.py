@@ -1,34 +1,51 @@
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 from e_coli_prediction.settings import BASE_DIR
 import os
 import joblib
 
 
-class PredictEColi:
 
 
+def load_model_and_scaler(creek):
+    model_filename = os.path.join(BASE_DIR, f'src/apps/website/weather_analyser/model/models/best_model_{creek}.pkl')
+    scaler_filename = os.path.join(BASE_DIR, f'src/apps/website/weather_analyser/model/models/scaler_{creek}.pkl')
+    model = joblib.load(model_filename)
+    scaler = joblib.load(scaler_filename)
+    return model, scaler
 
-    def predict(self,modelname,data):
+# Function to make predictions
+def make_predictions(creek, new_data):
+    model, scaler = load_model_and_scaler(creek)
 
-        try:
+    # Preprocess the new data in the same way as the training data
+    new_data['month_date'] = pd.to_datetime(new_data['date']).dt.month + pd.to_datetime(new_data['date']).dt.day
+    new_data.drop(columns=['date'], inplace=True)
 
-            filepath = os.path.join(BASE_DIR, f'src/apps/website/weather_analyser/model/{modelname}.joblib')
-            # Load the saved model
-            loaded_model = joblib.load(filepath)
-            print("Model loaded for prediction")
-            data['month_date'] = pd.to_datetime(data['month_date'])
+    # Fill missing values with the mean or mode as appropriate
+    numeric_columns = new_data.select_dtypes(include=['float64', 'int64']).columns
+    for col in numeric_columns:
+        new_data[col].fillna(new_data[col].mean(), inplace=True)
 
-            data['month_date'] = data['month_date'].dt.month + data['month_date'].dt.day
+    categorical_columns = new_data.select_dtypes(include=['object']).columns
+    for col in categorical_columns:
+        new_data[col].fillna(new_data[col].mode()[0], inplace=True)
 
-            predictions = loaded_model.predict(data)
+    # Label encoding for the categorical columns
+    le = LabelEncoder()
+    for col in categorical_columns:
+        new_data[col] = le.fit_transform(new_data[col])
 
-            print("Predictions on example data:")
-            print(predictions)
-            return predictions
-        except Exception as e:
-            print(e)
-            return None
+    # Define features
+    X_new = new_data[['Precipitation', 'Temp', 'MaxTemp', 'MinTemp', 'month_date', 'Season']]
+
+    # Standardize the features
+    X_new_scaled = scaler.transform(X_new)
+
+    # Make predictions
+    predictions = model.predict(X_new_scaled)
+    return predictions
 
 
 

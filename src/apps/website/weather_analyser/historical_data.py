@@ -1,18 +1,12 @@
 import openmeteo_requests
-
 import requests_cache
 import pandas as pd
 from retry_requests import retry
-from datetime import datetime, timedelta
-
 
 class HistoricalData:
-    def __init__(self, latitude, longitude, days_back):
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days_back)
-
-        start_date_str = start_date.strftime('%Y-%m-%d')
-        end_date_str = end_date.strftime('%Y-%m-%d')
+    def __init__(self, latitude, longitude, start="2015-01-01", end="2024-01-01"):
+        start_date_str = start
+        end_date_str = end
 
         cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
         retry_session = retry(cache_session, retries=5, backoff_factor=0.2)

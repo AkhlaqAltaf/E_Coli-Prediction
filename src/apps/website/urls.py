@@ -1,15 +1,12 @@
 from django.urls import path
-from .views import (HomePageView ,weather_data ,EagleCreekPageView ,
-                    FallCreekPageView,WhiteCreekPageView,LickCreekPageView)
+from .views import (HomePageView ,predictions,CreekPageView,historical_predictions)
 
 app_name = 'website'
 urlpatterns=[
 
     path('',HomePageView.as_view(),name='home'),
-    path('weather-data/', weather_data, name='weather_data'),
-    path('eaglecreek/', EagleCreekPageView.as_view(), name='eaglecreek'),
-    path('fallcreek/', FallCreekPageView.as_view(), name='fallcreek'),
-    path('whitecreek/', WhiteCreekPageView.as_view(), name='whitecreek'),
-    path('lickcreek/', LickCreekPageView.as_view(), name='lickcreek'),
+    path('weather-data/', predictions, name='weather_data'),
+    path('creekname/<str:creekname>', CreekPageView.as_view(), name='creekname'),
+    path('historical/', historical_predictions, name='historical_data'),  # New URL pattern
 
 ]

@@ -1,0 +1,236 @@
+{% extends 'website/base.html' %}
+
+{% block content %}
+
+    <div class="container mt-5">
+        <h1 class="mb-4">{{ creekname|title }} Creek Next 7 Day E Coli Alert</h1>
+        <div class="form-group">
+            <label for="location-dropdown">Select Location:</label>
+            <select class="form-control" id="location-dropdown">
+                <!-- Options will be populated by JavaScript -->
+            </select>
+        </div>
+        <div id="loader" class="d-none text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+        <div class="chart-container" style="position: relative; height:40vh; width:80vw">
+            <canvas id="weather-chart"></canvas>
+        </div>
+        <!-- Forecast Loader -->
+        <div id="forecast-loader" class="d-none text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Historical Data Controls -->
+        <div class="form-group mt-5">
+            <label for="start-date-picker">Start Date:</label>
+            <input type="date" class="form-control" id="start-date-picker" value="2023-01-01" min="2010-01-01" max="2024-01-01">
+        </div>
+        <div class="form-group">
+            <label for="end-date-picker">End Date:</label>
+            <input type="date" class="form-control" id="end-date-picker" value="2024-01-01" min="2010-01-01" max="2024-01-01">
+        </div>
+
+        <!-- Historical Data Loader -->
+        <div id="historical-loader" class="d-none text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Historical Data Table -->
+        <div class="table-responsive mt-5">
+            <table class="table table-bordered" id="historical-data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Temp</th>
+                        <th>MinTemp</th>
+                        <th>MaxTemp</th>
+                        <th>Precipitation</th>
+                        <th>Season</th>
+
+                        <th>Prediction</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        const creekLocations = {
+            eaglecreek: [
+                { value: "39.73567,-86.19647", text: "Raymond St" },
+                { value: "39.75048,-86.20769", text: "Morris St" },
+                { value: "39.772,-86.234417", text: "Grande Ave" },
+                { value: "39.780472,-86.259722", text: "10th St." },
+                { value: "39.88778,-86.306917", text: "Lafayette Rd." },
+                { value: "39.925944,-86.278861", text: "Ford Rd." }
+            ],
+            fallcreek: [
+                { value: "39.8355,-86.1182", text: "Fall Creek @ Keystone Ave" },
+                { value: "39.810472,-86.14214", text: "Fall Creek @ 30th St" },
+                { value: "39.805583,-86.1496", text: "Fall Creek @ Central Ave" },
+                { value: "39.8025,-86.159", text: "Fall Creek @ Illinois St" },
+                { value: "39.797167,-86.16942", text: "Fall Creek @ MLK" },
+                { value: "39.781778,-86.17683", text: "Fall Creek @ Indiana Ave" },
+                { value: "39.84472,-86.0679", text: "Devon Creek @ Radnor Rd" },
+                { value: "39.838768,-86.093856", text: "Devon Creek @ Brown Rd" },
+                { value: "39.841028,-86.100944", text: "Devon Creek @ Millersville Rd" }
+            ],
+            lick: [
+                { value: "39.769680,-86.026249", text: "Lick Creek @ Franklin Rd" },
+                { value: "39.746819,-86.063829", text: "Lick Creek @ Arlington Ave" },
+                { value: "39.736023,-86.082626", text: "Lick Creek @ Emerson Ave" },
+                { value: "39.721614,-86.095657", text: "Lick Creek @ Main St" },
+                { value: "39.703886,-86.120591", text: "Lick Creek @ Keystone Ave" },
+                { value: "39.702099,-86.158224", text: "Lick Creek @ Meridian St" },
+                { value: "39.708401,-86.187166", text: "Lick Creek @ Harding St" }
+            ],
+            whitecreek: [
+                { value: "52.52,13.41", text: "Berlin, Germany" },
+                { value: "40.71,-74.01", text: "New York, USA" },
+                { value: "34.05,-118.24", text: "Los Angeles, USA" },
+                { value: "48.85,2.35", text: "Paris, France" },
+                { value: "35.68,139.69", text: "Tokyo, Japan" }
+            ],
+            statecreek: [
+                { value: "39.73131,-86.233", text: "State Ditch @ Bradbury Ave" },
+                { value: "39.72527,-86.2609", text: "Mars Ditch @ Fortune Cir W Dr" },
+                { value: "39.71608,-86.241194", text: "Seerley Creek @ Southwest Dr" },
+                { value: "39.71297,-86.2344", text: "State Ditch @ Mooresville Rd" },
+                { value: "39.69183,-86.232", text: "State Ditch @ Thompson Rd" }
+            ],
+            pogues: [
+                { value: "39.756823,-86.173353", text: "White River @ Kentucky Ave" },
+                { value: "39.771778,-86.186278", text: "White River @ New York St" },
+                { value: "39.771,-86.141", text: "Pogues Run @ New York St" },
+                { value: "39.780194,-86.133833", text: "Pogues Run @ 10th St" },
+                { value: "39.787194,-86.116444", text: "Pogues Run @ Rural St" },
+                { value: "39.79625,-86.098639", text: "Pogues Run @ 21st St" },
+                { value: "39.808667,-86.082083", text: "Pogues Run @ Emerson Ave" },
+                { value: "39.825389,-86.065667", text: "Pogues Run @ 38th St" }
+            ],
+            crooked: [
+                { value: "39.797472,-86.042556", text: "Pleasant Run @ 21st St" },
+                { value: "39.775917,-86.064333", text: "Pleasant Run @ Arlington Ave" },
+                { value: "39.752056,-86.075139", text: "Bean Creek @ Orange St" },
+                { value: "39.758167,-86.107611", text: "Pleasant Run @ Southeastern Ave" },
+                { value: "39.729333,-86.120944", text: "Bean Creek @ Keystone Ave" },
+                { value: "39.744111,-86.140944", text: "Pleasant Run @ Barth Ave" },
+                { value: "39.736167,-86.147528", text: "Pleasant Run @ Garfield Park" },
+                { value: "39.735028,-86.148167", text: "Bean Creek @ Garfield Park" },
+                { value: "39.727861,-86.167778", text: "Pleasant Run @ Bluff Rd" },
+                { value: "39.752608,-86.117583", text: "Pleasant Run @ Prospect St" },
+                { value: "39.728917,-86.1395", text: "Bean Creek @ Shelby St" }
+            ]
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const creekname = "{{ creekname }}";
+            const locations = creekLocations[creekname] || [];
+
+            const dropdown = document.getElementById('location-dropdown');
+            dropdown.innerHTML = ''; // Clear existing options
+
+            locations.forEach(function(location) {
+                const option = document.createElement('option');
+                option.value = location.value;
+                option.textContent = location.text;
+                dropdown.appendChild(option);
+            });
+        });
+
+        document.getElementById('start-date-picker').addEventListener('change', fetchHistoricalData);
+        document.getElementById('end-date-picker').addEventListener('change', fetchHistoricalData);
+
+        function fetchHistoricalData() {
+            const location = document.getElementById('location-dropdown').value;
+            const [lat, long] = location.split(',');
+            const creek = "{{ creekname }}";
+            const startDate = document.getElementById('start-date-picker').value;
+            const endDate = document.getElementById('end-date-picker').value;
+
+            if (!location || !startDate || !endDate) return;
+
+            document.getElementById('historical-loader').classList.remove('d-none');
+
+            const requestData = {
+                lat: lat,
+                long: long,
+                creek: creek,
+                start_date: startDate,
+                end_date: endDate
+            };
+
+            fetch('/historical/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')  // Ensure to send CSRF token for security
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('historical-loader').classList.add('d-none');
+                // Update table with historical data
+                updateHistoricalTable(data);
+            })
+            .catch(error => {
+                console.error('Error fetching historical data:', error);
+                document.getElementById('historical-loader').classList.add('d-none');
+            });
+        }
+
+        function updateHistoricalTable(data) {
+            const tableBody = document.getElementById('historical-data-table').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = ''; // Clear existing data
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                    var alert = "No Alert";
+                    var alertColor = "green"; // Default to green
+
+                    if (row.prediction == 1) {
+                        alert = "Yes Alert";
+                        alertColor = "red"; // Change to red if there is an alert
+                    }
+
+                    tr.innerHTML = `
+                        <td>${row.date}</td>
+                        <td>${row.Temp}</td>
+                        <td>${row.MinTemp}</td>
+                        <td>${row.MaxTemp}</td>
+                        <td>${row.Precipitation}</td>
+                        <td>${row.Season}</td>
+                        <td style="color: ${alertColor};">${alert}</td>
+                    `;
+
+                    tableBody.appendChild(tr);
+            });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+{% endblock %}

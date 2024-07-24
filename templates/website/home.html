@@ -12,28 +12,20 @@
 <div class="container">
     <div class="row">
         <div class="col-md-8">
-            <h2>Current Forecasting</h2>
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <div id="loader" style="display: none;">Loading...</div>
-                    <div id="weather-data" style="display: none;">
-                        <p>ToDay Average Temperature   : <span id="temp">{{ temp }}</span>°C</p>
-                        <p>ToDay Average Precipitation : <span id="precp">{{ precp }}</span>%</p>
-                        <p>ToDay Average Rain          : <span id="rain">{{ rain }}</span> mm</p>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Stay informed with the most recent E. coli contamination levels for your selected creek. Our system provides accurate and timely predictions to ensure public safety and awareness.</p>
-                    <ul>
-                        <li>Eagle Creek: <span class="text-danger">High Risk</span></li>
-                        <li>Fall Creek: <span class="text-success">Low Risk</span></li>
-                        <li>Lick Creek: <span class="text-warning">Moderate Risk</span></li>
-                    </ul>
-                </div>
+            <h2>Current Forecasting For Your Current Location</h2>
+
+            <div class="form-group">
+                <label for="location-dropdown" style="display:None">Select Location:</label>
+                <select class="form-control" id="location-dropdown" style="display:None">
+                    <option value="39.73567,-86.19647" selected>Current Location</option>
+                </select>
             </div>
+   <div class="chart-container" style="position: relative; height:40vh; width:80vw">
+            <canvas id="weather-chart"></canvas>
+        </div>
         </div>
 
-        <div class="col-md-4">
+        <div >
             <h2>About Our System</h2>
             <p>Our E. coli prediction system uses advanced machine learning algorithms to forecast contamination levels in various creeks. By analyzing historical data and environmental factors, we provide accurate and reliable predictions to help you stay safe and informed.</p>
         </div>
@@ -77,6 +69,16 @@
                 document.getElementById("rain").textContent = data.rain;
                 document.getElementById("loader").style.display = "none";
                 document.getElementById("weather-data").style.display = "block";
+
+                // Update the dropdown menu with the current location
+                const locationDropdown = document.getElementById("location-dropdown");
+                const option = document.createElement("option");
+                option.value = `${latitude},${longitude}`;
+                option.textContent = `Your Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`;
+                locationDropdown.appendChild(option);
+
+                // Reload the page to reflect the changes
+                location.reload();
             })
             .catch(error => {
                 console.error('Error fetching weather data:', error);

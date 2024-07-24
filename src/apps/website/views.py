@@ -1,12 +1,12 @@
+import json
+
 import pandas as pd
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 from src.apps.website.weather_analyser.forcast_data import ForecastData
 from src.apps.website.weather_analyser.historical_data import HistoricalData
 from datetime import datetime, timedelta
-
-from src.apps.website.weather_analyser.predictions import PredictEColi
-
+from src.apps.website.weather_analyser.predictions import  make_predictions
 import numpy as np
 
 
@@ -20,14 +20,166 @@ class HomePageView(TemplateView):
 class EagleCreekPageView(TemplateView):
     template_name = "eaglecreek.html"
 
-class FallCreekPageView(TemplateView):
-    template_name = "fallcreek.html"
+class CreekPageView(TemplateView):
 
-class LickCreekPageView(TemplateView):
-    template_name = "lickcreek.html"
+    def get_template_names(self):
+        return [f"creek.html"]
 
-class WhiteCreekPageView(TemplateView):
-    template_name = "whitecreek.html"
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        creekname = self.kwargs.get('creekname')
+        context['creekname'] = creekname
+        print(creekname)
+        return context
+
+
+
+
+
+def get_season(date):
+    print(date)
+
+    if (date.month == 12 and date.day >= 20) or (date.month in [1, 2]) or (date.month == 3 and date.day < 20):
+        return 'Winter'
+    elif (date.month == 3 and date.day >= 20) or (date.month in [4, 5]) or (date.month == 6 and date.day < 20):
+        return 'Spring'
+    elif (date.month == 6 and date.day >= 20) or (date.month in [7, 8]) or (date.month == 9 and date.day < 20):
+        return 'Summer'
+    elif (date.month == 9 and date.day >= 20) or (date.month in [10, 11]) or (date.month == 12 and date.day < 20):
+        return 'Fall'
+    else:
+        return 'Winter'
+
+def predictions(request):
+    lat = request.GET.get('lat')
+    lon = request.GET.get('lon')
+    creek = request.GET.get('creek')
+    print(creek)
+
+    if lat and lon:
+        forecast_data = ForecastData(latitude=lat, longitude=lon, forecast_days=7)
+        metrics = []
+
+        for i in range(7):
+            today = datetime.now() + timedelta(days=i)
+            today_str = today.strftime('%Y-%m-%d')
+            today_data = forecast_data.daily_dataframe[forecast_data.daily_dataframe['date'] == today_str]
+
+            if today_data.empty:
+                continue
+            temp_max = today_data['temperature_2m_max'].values[0]
+            temp_min = today_data['temperature_2m_min'].values[0]
+            today_temp_avg = float((temp_max + temp_min) / 2)
+            today_precipitation = float(today_data['precipitation_sum'].values[0])
+            season = get_season(today)
+
+            metrics.append({
+                "date": today_str,
+                "Precipitation": float(today_precipitation),
+                "Temp": float(today_temp_avg),
+                "MaxTemp": float(temp_max),
+                "MinTemp": float(temp_min),
+                "Season": season,
+            })
+
+        dates = [entry['date'] for entry in metrics]
+        precipitation = [entry['Precipitation'] for entry in metrics]
+        temp = [entry['Temp'] for entry in metrics]
+        maxTemp = [entry['MaxTemp'] for entry in metrics]
+        minTemp = [entry['MinTemp'] for entry in metrics]
+        season = [entry['Season'] for entry in metrics]
+
+        df = pd.DataFrame({
+            "date": dates,
+            "Precipitation": precipitation,
+            "Temp": temp,
+            "MaxTemp": maxTemp,
+            "MinTemp": minTemp,
+            "Season": season,
+        })
+
+        # Generate predictions based on the dataframe
+        predictions = make_predictions(creek, df)
+        print(predictions)
+
+        # Combine metrics and predictions
+        for i, prediction in enumerate(predictions):
+            metrics[i]['prediction'] =int(prediction)
+
+
+
+        print(metrics)
+
+        return JsonResponse(metrics, safe=False)
+
+
+def historical_predictions(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            lat = data.get('lat')
+            lon = data.get('long')
+            creek = data.get('creek')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+
+
+            metrics = []
+            print(creek)
+            print(lat)
+
+            if lat and lon and start_date and end_date:
+                historical_data = HistoricalData(latitude=lat, longitude=lon, start=start_date, end=end_date)
+
+                # Fetch historical data
+                for index, row in historical_data.daily_dataframe.iterrows():
+                    date_str = row['date'].strftime('%Y-%m-%d')
+                    temp_max = row['temperature_2m_max']
+                    temp_min = row['temperature_2m_min']
+                    temp_avg = float((temp_max + temp_min) / 2)
+                    precipitation = float(row['precipitation_sum'])
+                    season = get_season(row['date'])
+
+                    metrics.append({
+                        "date": date_str,
+                        "Precipitation": precipitation,
+                        "Temp": temp_avg,
+                        "MaxTemp": temp_max,
+                        "MinTemp": temp_min,
+                        "Season": season,
+                    })
+
+            dates = [entry['date'] for entry in metrics]
+            precipitation = [entry['Precipitation'] for entry in metrics]
+            temp = [entry['Temp'] for entry in metrics]
+            maxTemp = [entry['MaxTemp'] for entry in metrics]
+            minTemp = [entry['MinTemp'] for entry in metrics]
+            season = [entry['Season'] for entry in metrics]
+
+            df = pd.DataFrame({
+                "date": dates,
+                "Precipitation": precipitation,
+                "Temp": temp,
+                "MaxTemp": maxTemp,
+                "MinTemp": minTemp,
+                "Season": season,
+            })
+
+            predictions = make_predictions(creek, df)
+
+            for i, prediction in enumerate(predictions):
+                metrics[i]['prediction'] = int(prediction)
+            print(metrics,predictions)
+
+
+
+            return JsonResponse(metrics, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': 'Invalid coordinates'}, safe=False)
+
+
+
+
 
 
 def weather_data(request):
@@ -58,15 +210,33 @@ def weather_data(request):
             'month_date':dates,
             'Temp':today_avg_temps
         })
-        predictions = PredictEColi()
-        response = predictions.predict('fallcreek',df)
-        print(response)
+        predictions = make_predictions('fallcreek',df)
+        print(predictions)
 
 
 
         return JsonResponse(metrics, safe=False)
 
     return JsonResponse({'error': 'Invalid coordinates'}, status=400)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def compute_metrics(historical_data, forecast_data):

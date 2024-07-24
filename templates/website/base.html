@@ -7,12 +7,37 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+        }
         body {
-            background-color: #f0f2f5;
+            background: url('https://images.pexels.com/photos/2049422/pexels-photo-2049422.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1') no-repeat center center fixed;
+            background-size: cover;
             color: #333;
+        }
+        .overlay {
+            position: fixed; /* Fixed position to cover the whole viewport */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.5); /* White background with 50% opacity */
+            z-index: 1;
+            pointer-events: none; /* Allow clicks through the overlay */
+        }
+        .content {
+            position: relative;
+            z-index: 2;
         }
         .navbar {
             background-color: #2d2e83;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
         }
         .navbar-brand {
             color: #fff;
@@ -40,33 +65,57 @@
             color: #fff;
             padding: 1rem 0;
             text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        #content-wrapper {
+            padding-top: 80px;
+            padding-bottom: 60px;
+            min-height: calc(100vh - 140px); /* 80px navbar + 60px footer */
+            position: relative; /* Ensure content is above the overlay */
+        }
+        #loader {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            display: none;
+        }
+        @media (max-width: 576px) {
+            #weather-chart {
+                width: 100% !important;
+                height: auto !important;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="overlay"></div> <!-- Background overlay with opacity -->
     <nav class="navbar navbar-expand-lg navbar-dark">
-        <a class="navbar-brand" href="#">StreamE</a>
+        <a class="navbar-brand" href="/">StreamE</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Home</a>
+                    <a class="nav-link" href="/">Home</a>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Select Creek
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="{% url 'website:eaglecreek' %}">Eagle Creek</a>
-                        <a class="dropdown-item" href="{% url 'website:fallcreek' %}">Fall Creek</a>
-                        <a class="dropdown-item" href="{% url 'website:whitecreek' %}">White Creek</a>
-                        <a class="dropdown-item" href="{% url 'website:lickcreek' %}">Lick Creek</a>
-                        <a class="dropdown-item" href="#">Pleasant Run</a>
-                        <a class="dropdown-item" href="#">Pogues Run</a>
-                        <a class="dropdown-item" href="#">State Ditch</a>
-                        <a class="dropdown-item" href="#">Williams – Crooked</a>
+                        <a class="dropdown-item" href="{% url 'website:creekname' creekname='eaglecreek' %}">Eagle Creek</a>
+                        <a class="dropdown-item" href="{% url 'website:creekname' creekname='fallcreek' %}">Fall Creek</a>
+                        <a class="dropdown-item" href="{% url 'website:creekname' creekname='whitecreek' %}">White Creek</a>
+                        <a class="dropdown-item" href="{% url 'website:creekname' creekname='lick' %}">Lick Creek</a>
+                        <a class="dropdown-item" href="{% url 'website:creekname' creekname='pogues' %}">Pogues Run</a>
+                        <a class="dropdown-item" href="{% url 'website:creekname' creekname='statecreek' %}">State Creek</a>
+                        <a class="dropdown-item" href="{% url 'website:creekname' creekname='crooked' %}">Crooked Creek</a>
                     </div>
                 </li>
                 <li class="nav-item">
@@ -78,8 +127,14 @@
             </ul>
         </div>
     </nav>
-    <div class="container mt-5">
+    <div id="loader">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+    <div id="content-wrapper" class="container mt-5 content">
         {% block content %}
+        <canvas id="weather-chart"></canvas>
         {% endblock %}
     </div>
     <footer>
@@ -88,7 +143,158 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    {% block scripts %}
-    {% endblock %}
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.0"></script>
+    <script>
+        $(document).ready(function() {
+            fetchHistoricalData();
+
+            let chart; // To hold the chart instance
+
+            function fetchWeatherData(lat, lon) {
+                $('#loader').removeClass('d-none'); // Show loader
+                $.ajax({
+                    url: '/weather-data',
+                    data: {
+                        lat: lat,
+                        lon: lon,
+                        creek: "eaglecreek"
+                    },
+                    success: function(data) {
+                        $('#loader').addClass('d-none'); // Hide loader
+                        let labels = [];
+                        let precipitations = [];
+                        let temps = [];
+                        let maxTemps = [];
+                        let minTemps = [];
+                        let alerts = [];
+
+                        data.forEach(function(row) {
+                            labels.push(row.date);
+                            precipitations.push(row.Precipitation);
+                            temps.push(row.Temp);
+                            maxTemps.push(row.MaxTemp);
+                            minTemps.push(row.MinTemp);
+                            alerts.push(row.prediction === 1);
+                        });
+
+                        renderChart(labels, precipitations, temps, maxTemps, minTemps, alerts);
+                    },
+                    error: function() {
+                        $('#loader').addClass('d-none'); // Hide loader
+                        alert('Failed to fetch weather data');
+                    }
+                });
+            }
+
+            function renderChart(labels, precipitations, temps, maxTemps, minTemps, alerts) {
+                const ctx = document.getElementById('weather-chart').getContext('2d');
+
+                // Destroy the old chart instance if it exists
+                if (chart) {
+                    chart.destroy();
+                }
+
+                // Create a new chart instance
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Precipitation (mm)',
+                                data: precipitations,
+                                borderColor: 'blue',
+                                backgroundColor: 'rgba(0, 0, 255, 0.1)',
+                                fill: true
+                            },
+                            {
+                                label: 'Temperature (°C)',
+                                data: temps,
+                                borderColor: 'green',
+                                backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                                fill: true
+                            },
+                            {
+                                label: 'Max Temperature (°C)',
+                                data: maxTemps,
+                                borderColor: 'red',
+                                backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                                fill: true
+                            },
+                            {
+                                label: 'Min Temperature (°C)',
+                                data: minTemps,
+                                borderColor: 'orange',
+                                backgroundColor: 'rgba(255, 165, 0, 0.1)',
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false, // Ensures the chart is responsive
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date',
+                                    color: '#000'
+                                },
+                                ticks: {
+                                    color: '#000' // Strong black color for labels
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Value',
+                                    color: '#000'
+                                },
+                                ticks: {
+                                    color: '#000' // Strong black color for labels
+                                }
+                            }
+                        },
+                        plugins: {
+                            annotation: {
+                                annotations: alerts.map((alert, index) => {
+                                    if (alert) {
+                                        return {
+                                            type: 'line',
+                                            mode: 'vertical',
+                                            scaleID: 'x',
+                                            value: labels[index],
+                                            borderColor: 'red',
+                                            borderWidth: 2,
+                                            label: {
+                                                content: 'Alert',
+                                                enabled: true,
+                                                position: 'top'
+                                            }
+                                        };
+                                    }
+                                    return null;
+                                }).filter(annotation => annotation !== null)
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Fetch data for the default location on page load
+            let defaultLocation = $('#location-dropdown').val();
+            let defaultCoords = defaultLocation.split(',');
+            fetchWeatherData(defaultCoords[0], defaultCoords[1]);
+
+            $('#location-dropdown').change(function() {
+                let selectedLocation = $(this).val();
+                let coords = selectedLocation.split(',');
+
+                fetchWeatherData(coords[0], coords[1]);
+            });
+        });
+    </script>
 </body>
 </html>
