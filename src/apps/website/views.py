@@ -8,6 +8,8 @@ from src.apps.website.weather_analyser.historical_data import HistoricalData
 from datetime import datetime, timedelta
 from src.apps.website.weather_analyser.predictions import  make_predictions
 import numpy as np
+def _round(value):
+    return round(float(value), 2)
 
 
 class HomePageView(TemplateView):
@@ -68,15 +70,18 @@ def predictions(request):
             temp_min = today_data['temperature_2m_min'].values[0]
             today_temp_avg = float((temp_max + temp_min) / 2)
             today_precipitation = float(today_data['precipitation_sum'].values[0])
+            rainfall = float(today_data['rain_sum'].values[0])
+
             season = get_season(today)
 
             metrics.append({
                 "date": today_str,
-                "Precipitation": float(today_precipitation),
-                "Temp": float(today_temp_avg),
-                "MaxTemp": float(temp_max),
-                "MinTemp": float(temp_min),
+                "Precipitation":_round(today_precipitation),
+                "Temp": _round(today_temp_avg),
+                "MaxTemp": _round(temp_max),
+                "MinTemp": _round(temp_min),
                 "Season": season,
+                "Rainfall":rainfall
             })
 
         dates = [entry['date'] for entry in metrics]
@@ -85,6 +90,8 @@ def predictions(request):
         maxTemp = [entry['MaxTemp'] for entry in metrics]
         minTemp = [entry['MinTemp'] for entry in metrics]
         season = [entry['Season'] for entry in metrics]
+        rainfall = [entry['Rainfall'] for entry in metrics]
+
 
         df = pd.DataFrame({
             "date": dates,
@@ -138,10 +145,10 @@ def historical_predictions(request):
 
             metrics.append({
                 "date": date_str,
-                "Precipitation": precipitation,
-                "Temp": temp_avg,
-                "MaxTemp": temp_max,
-                "MinTemp": temp_min,
+                "Precipitation": _round(precipitation),
+                "Temp": _round(temp_avg),
+                "MaxTemp":_round(temp_max),
+                "MinTemp":_round(temp_min),
                 "Season": season,
             })
 

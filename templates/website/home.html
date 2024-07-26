@@ -1,31 +1,95 @@
 {% extends 'website/base.html' %}
 
 {% block content %}
-<div class="jumbotron text-center bg-white">
+<div class="">
     <h1 class="display-4">Welcome to E. coli Prediction System</h1>
     <p class="lead">Real-time E. coli contamination forecasting for different creeks.</p>
     <hr class="my-4">
     <p>Select a creek from the dropdown menu in the navbar to view the latest E. coli predictions.</p>
-    <a class="btn btn-primary btn-lg" href="#" role="button">Learn more</a>
 </div>
 
 <div class="container">
-    <div class="row">
-        <div class="col-md-8">
-            <h2>Current Forecasting For Your Current Location</h2>
+    <div class="col-md-8">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-12 wow fadeIn" data-wow-delay="0.5s">
+                    <h1 class="mb-1">Check the weather forecast</h1>
+                    <div class="container-fluid py-5">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <div class="container_weather">
+        <div id="loader" class="d-none text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+        <div class="weather__header">
             <div class="form-group">
-                <label for="location-dropdown" style="display:None">Select Location:</label>
-                <select class="form-control" id="location-dropdown" style="display:None">
-                    <option value="39.73567,-86.19647" selected>Current Location</option>
+                <label for="location-dropdown">Select Location:</label>
+                <select class="form-control" id="location-dropdown">
+                    <!-- Options will be populated by JavaScript -->
                 </select>
             </div>
-   <div class="chart-container" style="position: relative; height:40vh; width:80vw">
-            <canvas id="weather-chart"></canvas>
+            <div class="weather__units">
+                <span class="weather_unit_celsius">&#176C</span>
+                <span class="weather_unit_fahrenheit">&#176F</span>
+            </div>
         </div>
+        <div class="weather__body">
+            <h1 class="weather__city text-white"></h1>
+            <div class="weather__datetime"></div>
+            <div class="weather__forecast"></div>
+            <div class="col-md-12">
+                <h2 id="alert-status">Not Predicted</h2>
+            </div>
+            <!-- <div class="weather__icon" id="weather-icon"></div> -->
+            <img src="https://cdn.pixabay.com/animation/2023/11/11/18/15/18-15-55-407_512.gif" style="width: 60px;height: 60px;"/>
+            <!-- <p class="weather__temperature" id="current-temp"></p> -->
+            <div class="weather__minmax">
+                <p id="min-temp">Min: &#176</p>
+                <p id="max-temp">Max: &#176</p>
+            </div>
         </div>
+        <div class="weather__info">
+            <div class="weather__card">
+                <i class="fa-solid fa-temperature-full"></i>
+                <div>
+                    <p>Real Feel</p>
+                    <p class="weather__realfeel" id="temp">18&#176</p>
+                </div>
+            </div>
+            <div class="weather__card">
+                <i class="fa-solid fa-droplet"></i>
+                <div>
+                    <p>Precipitation</p>
+                    <p class="weather__precipitation" id="precipitation">18&#176</p>
+                </div>
+            </div>
+            <div class="weather__card">
+                <i class="fa-solid fa-umbrella"></i>
+                <div>
+                    <p>Season</p>
+                    <p class="weather__season" id="season">18&#176</p>
+                </div>
+            </div>
+            <div class="weather__card">
+                <i class="fa-solid fa-cloud-rain"></i>
+                <div>
+                    <p>Rainfall</p>
+                    <p class="weather__rainfall" id="rainfall">18&#176</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <div >
+      
+
+    <div class="row">
+        <div>
             <h2>About Our System</h2>
             <p>Our E. coli prediction system uses advanced machine learning algorithms to forecast contamination levels in various creeks. By analyzing historical data and environmental factors, we provide accurate and reliable predictions to help you stay safe and informed.</p>
         </div>
@@ -44,46 +108,187 @@
         </div>
     </div>
 </div>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.0"></script>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(fetchWeatherData);
-        } else {
-            alert("Geolocation is not supported by this browser.");
+            const creekLocations = {
+                "Eagle Creek": [
+                    { value: "39.73567,-86.19647", text: "Raymond St" },
+                    { value: "39.75048,-86.20769", text: "Morris St" },
+                    { value: "39.772,-86.234417", text: "Grande Ave" },
+                    { value: "39.780472,-86.259722", text: "10th St." },
+                    { value: "39.88778,-86.306917", text: "Lafayette Rd." },
+                    { value: "39.925944,-86.278861", text: "Ford Rd." }
+                ],
+                "Fall Creek": [
+                    { value: "39.8355,-86.1182", text: "Fall Creek @ Keystone Ave" },
+                    { value: "39.810472,-86.14214", text: "Fall Creek @ 30th St" },
+                    { value: "39.805583,-86.1496", text: "Fall Creek @ Central Ave" },
+                    { value: "39.8025,-86.159", text: "Fall Creek @ Illinois St" },
+                    { value: "39.797167,-86.16942", text: "Fall Creek @ MLK" },
+                    { value: "39.781778,-86.17683", text: "Fall Creek @ Indiana Ave" },
+                    { value: "39.84472,-86.0679", text: "Devon Creek @ Radnor Rd" },
+                    { value: "39.838768,-86.093856", text: "Devon Creek @ Brown Rd" },
+                    { value: "39.841028,-86.100944", text: "Devon Creek @ Millersville Rd" }
+                ],
+                "Lick Creek": [
+                    { value: "39.769680,-86.026249", text: "Lick Creek @ Franklin Rd" },
+                    { value: "39.746819,-86.063829", text: "Lick Creek @ Arlington Ave" },
+                    { value: "39.736023,-86.082626", text: "Lick Creek @ Emerson Ave" },
+                    { value: "39.721614,-86.095657", text: "Lick Creek @ Main St" },
+                    { value: "39.703886,-86.120591", text: "Lick Creek @ Keystone Ave" },
+                    { value: "39.702099,-86.158224", text: "Lick Creek @ Meridian St" },
+                    { value: "39.708401,-86.187166", text: "Lick Creek @ Harding St" }
+                ],
+                "White Creek": [
+                    { value: "52.52,13.41", text: "Berlin, Germany" },
+                    { value: "40.71,-74.01", text: "New York, USA" },
+                    { value: "34.05,-118.24", text: "Los Angeles, USA" },
+                    { value: "48.85,2.35", text: "Paris, France" },
+                    { value: "35.68,139.69", text: "Tokyo, Japan" }
+                ],
+                "State Creek": [
+                    { value: "39.73131,-86.233", text: "State Ditch @ Bradbury Ave" },
+                    { value: "39.72527,-86.2609", text: "Mars Ditch @ Fortune Cir W Dr" },
+                    { value: "39.71608,-86.241194", text: "Seerley Creek @ Southwest Dr" },
+                    { value: "39.71297,-86.2344", text: "State Ditch @ Mooresville Rd" },
+                    { value: "39.69183,-86.232", text: "State Ditch @ Thompson Rd" }
+                ],
+                "Pogues Run": [
+                    { value: "39.756823,-86.173353", text: "White River @ Kentucky Ave" },
+                    { value: "39.771778,-86.186278", text: "White River @ New York St" },
+                    { value: "39.771,-86.141", text: "Pogues Run @ New York St" },
+                    { value: "39.780194,-86.133833", text: "Pogues Run @ 10th St" },
+                    { value: "39.787194,-86.116444", text: "Pogues Run @ Rural St" },
+                    { value: "39.79625,-86.098639", text: "Pogues Run @ 21st St" },
+                    { value: "39.808667,-86.082083", text: "Pogues Run @ Emerson Ave" },
+                    { value: "39.825389,-86.065667", text: "Pogues Run @ 38th St" }
+                ],
+                "Crooked Creek": [
+                    { value: "39.797472,-86.042556", text: "Pleasant Run @ 21st St" },
+                    { value: "39.775917,-86.064333", text: "Pleasant Run @ Arlington Ave" },
+                    { value: "39.752056,-86.075139", text: "Bean Creek @ Orange St" },
+                    { value: "39.758167,-86.107611", text: "Pleasant Run @ Southeastern Ave" },
+                    { value: "39.729333,-86.120944", text: "Bean Creek @ Keystone Ave" },
+                    { value: "39.744111,-86.140944", text: "Pleasant Run @ Barth Ave" },
+                    { value: "39.736167,-86.147528", text: "Pleasant Run @ Garfield Park" },
+                    { value: "39.735028,-86.148167", text: "Bean Creek @ Garfield Park" },
+                    { value: "39.727861,-86.167778", text: "Pleasant Run @ Bluff Rd" },
+                    { value: "39.752608,-86.117583", text: "Pleasant Run @ Prospect St" },
+                    { value: "39.728917,-86.1395", text: "Bean Creek @ Shelby St" }
+                ]
+            };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropdown = document.getElementById('location-dropdown');
+        dropdown.innerHTML = ''; // Clear existing options
+
+        for (const [creek, locations] of Object.entries(creekLocations)) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = creek;
+
+            locations.forEach(function(location) {
+                const option = document.createElement('option');
+                option.value = location.value;
+                option.textContent = location.text;
+                optgroup.appendChild(option);
+            });
+
+            dropdown.appendChild(optgroup);
         }
     });
 
-    function fetchWeatherData(position) {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
+    $(document).ready(function() {
+        let chart; // To hold the chart instance
 
-        document.getElementById("loader").style.display = "block";
-        document.getElementById("weather-data").style.display = "none";
+        function fetchWeatherData(lat, lon) {
+            console.log("FETCHING WEATHER DATA");
+            $('#loader').removeClass('d-none'); // Show loader
+            $.ajax({
+                url: '/weather-data',
+                data: {
+                    lat: lat,
+                    lon: lon,
+                    creek: "eaglecreek"
+                },
+                success: function(data) {
+                    $('#loader').addClass('d-none'); // Hide loader
+                    let labels = [];
+                    let precipitations = [];
+                    let temps = [];
+                    let maxTemps = [];
+                    let minTemps = [];
+                    let alerts = [];
+                    updateHistoricalTable(data);
 
-        fetch(`/weather-data?lat=${latitude}&lon=${longitude}`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("temp").textContent = data.temp;
-                document.getElementById("precp").textContent = data.precp;
-                document.getElementById("rain").textContent = data.rain;
-                document.getElementById("loader").style.display = "none";
-                document.getElementById("weather-data").style.display = "block";
+                    data.forEach(function(row) {
+                        labels.push(row.date);
+                        precipitations.push(row.Precipitation);
+                        temps.push(row.Temp);
+                        maxTemps.push(row.MaxTemp);
+                        minTemps.push(row.MinTemp);
+                        alerts.push(row.prediction === 1);
+                    });
 
-                // Update the dropdown menu with the current location
-                const locationDropdown = document.getElementById("location-dropdown");
-                const option = document.createElement("option");
-                option.value = `${latitude},${longitude}`;
-                option.textContent = `Your Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`;
-                locationDropdown.appendChild(option);
+                    // Update UI with fetched data
+                    $('#current-temp').html(`${data[0].Temp}&#176`);
+                    $('#min-temp').html(`Min: ${data[0].MinTemp}&#176`);
+                    $('#max-temp').html(`Max: ${data[0].MaxTemp}&#176`);
+                    $('#precipitation').html(`${data[0].Precipitation}&#37`);
+                    $('#season').html(`${data[0].Season}`);
+                    $('#rainfall').html(`${data[0].Rainfall}&#37`);
+                    $('#weather-icon').html(`<img src="${data[0].IconUrl}" alt="Weather Icon">`);
 
-                // Reload the page to reflect the changes
-                location.reload();
-            })
-            .catch(error => {
-                console.error('Error fetching weather data:', error);
-                document.getElementById("loader").textContent = "Error loading data.";
+                    // Update alert status
+                    const alertStatus = data[0].prediction === 1 ? 'Alert Predicted' : 'Alert Not Predicted';
+                    const alertColor = data[0].prediction === 1 ? 'red' : 'green';
+                    $('#alert-status').html(`Alert Status: ${alertStatus}`).css('color', alertColor);
+                },
+                error: function() {
+                    $('#loader').addClass('d-none'); // Hide loader
+                    alert('Failed to fetch weather data');
+                }
             });
-    }
+        }
+
+        // Fetch data for the default location on page load
+        let defaultLocation = $('#location-dropdown').val();
+        let defaultCoords = defaultLocation.split(',');
+
+        fetchWeatherData(defaultCoords[0], defaultCoords[1]);
+
+        $('#location-dropdown').change(function() {
+            let selectedLocation = $(this).val();
+            let coords = selectedLocation.split(',');
+            fetchWeatherData(coords[0], coords[1]);
+        });
+
+        function updateHistoricalTable(data) {
+            data.forEach(row => {
+                const alert = row.prediction == 1 ? "Yes Alert" : "No Alert";
+                const alertColor = row.prediction == 1 ? "red" : "green";
+
+                console.log("TEMPERATURE DATA UPDATED");
+
+                $('#temp').html(`${row.Temp}&#176`);
+
+                const tr = `<tr>
+                    <td>${row.date}</td>
+                    <td>${row.Temp}</td>
+                    <td>${row.MinTemp}</td>
+                    <td>${row.MaxTemp}</td>
+                    <td>${row.Precipitation}</td>
+                    <td>${row.Season}</td>
+                    <td style="color: ${alertColor};">${alert}</td>
+                </tr>`;
+                // tableBody.append(tr);
+            });
+        }
+    });
 </script>
 {% endblock %}
