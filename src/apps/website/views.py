@@ -37,6 +37,7 @@ class CreekPageView(TemplateView):
 
 
 
+
 def get_season(date):
 
     if (date.month == 12 and date.day >= 20) or (date.month in [1, 2]) or (date.month == 3 and date.day < 20):
@@ -81,7 +82,7 @@ def predictions(request):
                 "MaxTemp": _round(temp_max),
                 "MinTemp": _round(temp_min),
                 "Season": season,
-                "Rainfall":rainfall
+                "Rainfall":_round(rainfall)
             })
 
         dates = [entry['date'] for entry in metrics]
