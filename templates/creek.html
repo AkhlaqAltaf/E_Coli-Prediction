@@ -48,10 +48,10 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Temp</th>
-                        <th>MinTemp</th>
-                        <th>MaxTemp</th>
-                        <th>Precipitation</th>
+                        <th>Temp </th>
+                        <th>MinTemp </th>
+                        <th>MaxTemp </th>
+                        <th>Precipitation </th>
                         <th>Season</th>
 
                         <th>Prediction</th>
@@ -368,10 +368,10 @@ fetchHistoricalData();
                 $('#temp').html(`${row.Temp[0]}&#176`);
                 const tr = `<tr>
                     <td>${row.date}</td>
-                    <td>${row.Temp}</td>
-                    <td>${row.MinTemp}</td>
-                    <td>${row.MaxTemp}</td>
-                    <td>${row.Precipitation}</td>
+                    <td>${row.Temp} &#176</td>
+                    <td>${row.MinTemp} &#176</td>
+                    <td>${row.MaxTemp} &#176</td>
+                    <td>${row.Precipitation} mm</td>
                     <td>${row.Season}</td>
                     <td style="color: ${alertColor};">${alert}</td>
                 </tr>`;

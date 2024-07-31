@@ -34,10 +34,7 @@
                     <!-- Options will be populated by JavaScript -->
                 </select>
             </div>
-            <div class="weather__units">
-                <span class="weather_unit_celsius">&#176C</span>
-                <span class="weather_unit_fahrenheit">&#176F</span>
-            </div>
+     
         </div>
         <div class="weather__body">
             <h1 class="weather__city text-white"></h1>
@@ -239,9 +236,9 @@
                     $('#current-temp').html(`${data[0].Temp}&#176`);
                     $('#min-temp').html(`Min: ${data[0].MinTemp}&#176`);
                     $('#max-temp').html(`Max: ${data[0].MaxTemp}&#176`);
-                    $('#precipitation').html(`${data[0].Precipitation}&#37`);
+                    $('#precipitation').html(`${data[0].Precipitation}  mm`);
                     $('#season').html(`${data[0].Season}`);
-                    $('#rainfall').html(`${data[0].Rainfall}&#37`);
+                    $('#rainfall').html(`${data[0].Rainfall} mm`);
                     $('#weather-icon').html(`<img src="${data[0].IconUrl}" alt="Weather Icon">`);
 
                     // Update alert status

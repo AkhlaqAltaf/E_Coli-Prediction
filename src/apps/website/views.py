@@ -7,13 +7,18 @@ from src.apps.website.weather_analyser.forcast_data import ForecastData
 from src.apps.website.weather_analyser.historical_data import HistoricalData
 from datetime import datetime, timedelta
 from src.apps.website.weather_analyser.predictions import  make_predictions
+from src.apps.website.weather_analyser.decorator import check_date
 import numpy as np
 def _round(value):
+
     return round(float(value), 2)
 
 
 class HomePageView(TemplateView):
     template_name = "website/home.html"
+    @check_date
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -21,8 +26,14 @@ class HomePageView(TemplateView):
 
 class EagleCreekPageView(TemplateView):
     template_name = "eaglecreek.html"
+    @check_date
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
 class CreekPageView(TemplateView):
+    @check_date
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def get_template_names(self):
         return [f"creek.html"]
@@ -55,6 +66,9 @@ def predictions(request):
     lat = request.GET.get('lat')
     lon = request.GET.get('lon')
     creek = request.GET.get('creek')
+    @check_date
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     if lat and lon:
         forecast_data = ForecastData(latitude=lat, longitude=lon, forecast_days=7)
@@ -85,6 +99,7 @@ def predictions(request):
                 "Rainfall":_round(rainfall)
             })
 
+        print(metrics)
         dates = [entry['date'] for entry in metrics]
         precipitation = [entry['Precipitation'] for entry in metrics]
         temp = [entry['Temp'] for entry in metrics]
